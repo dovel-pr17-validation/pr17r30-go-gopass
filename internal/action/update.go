@@ -1,0 +1,38 @@
+package action
+
+import (
+	"context"
+
+	"github.com/gopasspw/gopass/internal/action/exit"
+	"github.com/gopasspw/gopass/internal/out"
+	"github.com/gopasspw/gopass/internal/updater"
+	"github.com/gopasspw/gopass/pkg/ctxutil"
+	"github.com/urfave/cli/v3"
+)
+
+// Update will start the interactive update assistant.
+func (s *miscHandler) Update(ctx context.Context, cmd *cli.Command) error {
+	_ = s.rem.Reset("update")
+
+	ctx = ctxutil.WithGlobalFlags(ctx, cmd)
+
+	if s.version.String() == "0.0.0+HEAD" {
+		out.Errorf(ctx, "Cannot check version against HEAD")
+
+		return nil
+	}
+
+	if cmd.Bool("pre") {
+		out.Printf(ctx, "⚒ Checking for available updates (including pre-releases) ...")
+	} else {
+		out.Printf(ctx, "⚒ Checking for available updates ...")
+	}
+
+	if err := updater.Update(ctx, s.version, cmd.Bool("pre")); err != nil {
+		return exit.Error(exit.Unknown, err, "Failed to update gopass: %s", err)
+	}
+
+	out.OKf(ctx, "gopass is up to date")
+
+	return nil
+}
